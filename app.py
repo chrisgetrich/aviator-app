@@ -1,28 +1,67 @@
 import streamlit as st
 import numpy as np
 
-st.title("Aviator Predictor by Chris")
+# Configuration de la page
+st.set_page_config(
+    page_title="Aviator Predictor by Chris",
+    page_icon="✈️",
+    layout="centered"
+)
 
-st.write("**Entre les 10 dernières cotes Aviator (ex: 1.25, 1.48, etc.)**")
-user_input = st.text_input("Cotes séparées par des virgules")
+# Style CSS personnalisé pour un thème Aviator
+st.markdown("""
+    <style>
+        body {
+            background-color: #000000;
+            color: #ffffff;
+        }
+        .stApp {
+            background-color: #000000;
+        }
+        h1, h2, h3 {
+            color: #ff4444;
+        }
+        .stButton>button {
+            background-color: #ff0000;
+            color: white;
+            font-size: 18px;
+            border-radius: 8px;
+            height: 3em;
+            width: 100%;
+        }
+        .css-2trqyj {
+            color: white;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
-def analyse_cotes(cotes):
-    cotes = np.array(cotes)
-    moyenne = np.mean(cotes)
-    derniere = cotes[-1]
+# Logo
+st.image("https://www.pngmart.com/files/22/Aviator-Logo-PNG.png", width=180)
 
-    if derniere < moyenne * 0.85:
-        return "JOUER"
-    else:
-        return "ATTENDS"
+# Titre
+st.title("✈️ Aviator Predictor by Chris")
+st.subheader("Optimisé pour détecter les cotes 2")
 
-if user_input:
-    try:
-        cotes = [float(x.strip()) for x in user_input.split(",") if x.strip()]
-        if len(cotes) < 5:
-            st.warning("Entre au moins 5 cotes.")
+st.markdown("**Entre les 10 dernières cotes de BetPawa :**")
+
+# Champs pour les 10 dernières cotes
+cotes = []
+cols = st.columns(5)
+for i in range(10):
+    with cols[i % 5]:
+        cote = st.number_input(f"Cote {i+1}", min_value=0.01, format="%.2f", key=f"cote_{i}")
+        cotes.append(cote)
+
+# Analyse
+if st.button("Analyser les cotes"):
+    if all(cote > 0 for cote in cotes):
+        moyenne = np.mean(cotes)
+        derniere = cotes[-1]
+
+        # Logique prédictive optimisée
+        if derniere < moyenne * 0.85:
+            st.success("✈️ Décision : **JOUER** — Probabilité d’un x2 bientôt")
         else:
-            decision = analyse_cotes(cotes)
-            st.success(f"Décision : **{decision}**")
-    except ValueError:
-        st.error("Format invalide. Assure-toi d’entrer des nombres séparés par des virgules.")
+            st.warning("⛔ Décision : **ATTENDS** — Trop risqué pour un x2 maintenant")
+    else:
+        st.error("⚠️ Remplis toutes les cotes avec des valeurs valides.")
