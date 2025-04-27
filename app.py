@@ -1,67 +1,81 @@
 import streamlit as st
-import numpy as np
 
-# Configuration de la page
-st.set_page_config(
-    page_title="Aviator Predictor by Chris",
-    page_icon="✈️",
-    layout="centered"
-)
+# Initialisation des cotes et de l'historique
+if "cotes" not in st.session_state:
+    st.session_state.cotes = ["", "", "", "", ""]
 
-# Style CSS personnalisé pour un thème Aviator
+if "historique" not in st.session_state:
+    st.session_state.historique = []
+
+st.set_page_config(page_title="Aviator Predictor", page_icon="✈️", layout="centered")
+
+# Style
 st.markdown("""
-    <style>
-        body {
-            background-color: #000000;
-            color: #ffffff;
-        }
-        .stApp {
-            background-color: #000000;
-        }
-        h1, h2, h3 {
-            color: #ff4444;
-        }
-        .stButton>button {
-            background-color: #ff0000;
-            color: white;
-            font-size: 18px;
-            border-radius: 8px;
-            height: 3em;
-            width: 100%;
-        }
-        .css-2trqyj {
-            color: white;
-        }
-    </style>
+    <h1 style='text-align: center; color: red;'>✈️ Aviator Predictor Betpawa ✈️</h1>
+    <h3 style='text-align: center; color: white;'>Optimisé pour prédire quand miser sur le 2x</h3>
 """, unsafe_allow_html=True)
 
-# Logo
-st.image("https://www.pngmart.com/files/22/Aviator-Logo-PNG.png", width=180)
+st.divider()
 
-# Titre
-st.title("✈️ Aviator Predictor by Chris")
-st.subheader("Optimisé pour détecter les cotes 2")
+st.write("**Entrez vos 5 dernières cotes :**")
 
-st.markdown("**Entre les 10 dernières cotes de BetPawa :**")
+# Affichage des 5 champs
+for i in range(5):
+    st.session_state.cotes[i] = st.text_input(f"Cote {i+1}", value=st.session_state.cotes[i], key=f"cote_{i}")
 
-# Champs pour les 10 dernières cotes
-cotes = []
-cols = st.columns(5)
-for i in range(10):
-    with cols[i % 5]:
-        cote = st.number_input(f"Cote {i+1}", min_value=0.01, format="%.2f", key=f"cote_{i}")
-        cotes.append(cote)
+# Choix du nombre de cotes à analyser
+nombre_cotes = st.selectbox(
+    "Choisissez combien de cotes récentes analyser :", 
+    options=[2, 3, 4, 5], 
+    index=3
+)
 
-# Analyse
-if st.button("Analyser les cotes"):
-    if all(cote > 0 for cote in cotes):
-        moyenne = np.mean(cotes)
-        derniere = cotes[-1]
+# Fonction d'analyse
+def analyser_cotes(cotes, nb):
+    try:
+        # Nettoyer et transformer en float
+        recent_cotes = [float(c) for c in cotes[-nb:] if c != ""]
+        if len(recent_cotes) < nb:
+            return "Pas assez de cotes"
+        
+        moyenne = sum(recent_cotes) / len(recent_cotes)
+        derniere = recent_cotes[-1]
 
-        # Logique prédictive optimisée
-        if derniere < moyenne * 0.85:
-            st.success("✈️ Décision : **JOUER** — Probabilité d’un x2 bientôt")
+        if moyenne < 2.0 and derniere < 1.8:
+            return "ATTENDRE"
+        elif 2.0 <= moyenne <= 2.5 and 1.5 <= derniere <= 2.0:
+            return "MISER"
+        elif moyenne > 2.5 and derniere > 2.0:
+            return "ATTENDRE"
         else:
-            st.warning("⛔ Décision : **ATTENDS** — Trop risqué pour un x2 maintenant")
+            return "ATTENDRE"
+    except:
+        return "Erreur d'analyse"
+
+# Quand on clique sur "Analyser"
+if st.button("Analyser"):
+    decision = analyser_cotes(st.session_state.cotes, nombre_cotes)
+    
+    if decision != "Pas assez de cotes" and decision != "Erreur d'analyse":
+        st.success(f"**Décision : {decision} pour le prochain tour !**")
+
+        # Déplacer les cotes : 
+        st.session_state.cotes = st.session_state.cotes[1:] + [""]
+        
+        # Ajouter la décision à l'historique
+        st.session_state.historique.append(decision)
     else:
-        st.error("⚠️ Remplis toutes les cotes avec des valeurs valides.")
+        st.warning("Merci de remplir assez de cotes pour analyser.")
+
+st.divider()
+
+# Affichage de l'historique
+st.write("### Historique des décisions :")
+if st.session_state.historique:
+    for i, action in enumerate(reversed(st.session_state.historique[-10:]), 1):
+        st.write(f"{i}. {action}")
+else:
+    st.write("Aucune analyse effectuée pour le moment.")
+
+# Petit rappel
+st.caption("Développé pour Betpawa Aviator - Stratégie optimisée sur les cotes de 2x.")
